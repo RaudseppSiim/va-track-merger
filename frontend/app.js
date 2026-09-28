@@ -68,7 +68,7 @@ async function loadFiles() {
   for (const slot of ["a", "b"]) {
     const sel = $(`#file-${slot}`);
     const prev = sel.value;
-    sel.innerHTML = '<option value="">— vali fail —</option>';
+    sel.innerHTML = '<option value="">— choose a file —</option>';
     for (const f of files) {
       const opt = document.createElement("option");
       opt.value = f.path;
@@ -79,7 +79,7 @@ async function loadFiles() {
   }
 
   if (!files.length) {
-    toast("Kaustas media/ pole ühtki videofaili. Kopeeri failid sinna või muuda docker-compose.yml volume'i.", true);
+    toast("No video files in media/. Copy files there or change the volume in docker-compose.yml.", true);
   }
 }
 
@@ -92,7 +92,7 @@ async function selectFile(slot) {
 
   if (!path) { meta.textContent = "—"; syncEnabled(); return; }
 
-  meta.textContent = "loen…";
+  meta.textContent = "reading…";
   try {
     const info = await api.get("/probe", { path });
     state[slot].info = info;
@@ -101,7 +101,7 @@ async function selectFile(slot) {
     if (info.width) bits.push(`${info.width}×${info.height}`);
     if (info.fps) bits.push(`<b>${info.fps.toFixed(3)} fps</b>`);
     if (info.videoCodec) bits.push(info.videoCodec);
-    bits.push(`${info.audio.length} helirada`);
+    bits.push(`${info.audio.length} audio track${info.audio.length === 1 ? "" : "s"}`);
     meta.innerHTML = bits.join(" · ");
 
     info.audio.forEach((s, i) => {
@@ -112,10 +112,10 @@ async function selectFile(slot) {
       streamSel.append(opt);
     });
     if (!info.audio.length) {
-      streamSel.innerHTML = '<option value="0">— heliradasid pole —</option>';
+      streamSel.innerHTML = '<option value="0">— no audio tracks —</option>';
     }
   } catch (err) {
-    meta.textContent = `viga: ${err.message}`;
+    meta.textContent = `error: ${err.message}`;
   }
 
   syncEnabled();
@@ -133,15 +133,15 @@ function updateFpsHint() {
     const ratio = a.fps / b.fps;
     const perHour = (ratio - 1) * 3600;
     parts.push(
-      `Kaadrisagedused erinevad: <b>${a.fps.toFixed(3)}</b> vs <b>${b.fps.toFixed(3)}</b> → ` +
-      `eeldatav tempo <b>${ratio.toFixed(6)}×</b>, see on ${Math.abs(perHour).toFixed(1)} s tunnis.`
+      `Frame rates differ: <b>${a.fps.toFixed(3)}</b> vs <b>${b.fps.toFixed(3)}</b> → ` +
+      `expected tempo <b>${ratio.toFixed(6)}×</b>, which is ${Math.abs(perHour).toFixed(1)} s per hour.`
     );
   }
   const dd = Math.abs(a.duration - b.duration);
   if (dd > 0.5) {
-    parts.push(`Kestused erinevad <b>${dd.toFixed(1)} s</b> võrra (${fmtTime(a.duration)} vs ${fmtTime(b.duration)}).`);
+    parts.push(`Durations differ by <b>${dd.toFixed(1)} s</b> (${fmtTime(a.duration)} vs ${fmtTime(b.duration)}).`);
   }
-  if (!parts.length) parts.push("Kaadrisagedus ja kestus kattuvad — triiv on tõenäoliselt ainult konstantne nihe.");
+  if (!parts.length) parts.push("Frame rate and duration match — the drift is probably just a constant offset.");
   el.innerHTML = parts.join(" ");
 }
 
@@ -183,7 +183,7 @@ async function runAnalyse() {
 function applyAnalysis(result) {
   state.analysis = result;
   const run = result.runs.find((r) => r.method === result.best) || result.runs[0];
-  if (!run) { toast("Analüüs ei andnud tulemust", true); return; }
+  if (!run) { toast("Analysis returned no result", true); return; }
 
   state.measurements = run.measurements;
   state.fitted = { alpha: run.model.alpha, beta: run.model.beta };
@@ -207,11 +207,11 @@ function applyAnalysis(result) {
 
 function fillRatioPresets(known, fpsRatio) {
   const sel = $("#ratio-presets");
-  sel.innerHTML = '<option value="">— vali —</option>';
+  sel.innerHTML = '<option value="">— choose —</option>';
   if (fpsRatio && Math.abs(fpsRatio - 1) > 1e-9) {
     const opt = document.createElement("option");
     opt.value = fpsRatio;
-    opt.textContent = `Failide fps-suhtest: ${fpsRatio.toFixed(6)}×`;
+    opt.textContent = `From the files' fps ratio: ${fpsRatio.toFixed(6)}×`;
     sel.append(opt);
   }
   for (const r of known || []) {
@@ -234,41 +234,41 @@ function renderVerdict(run, result) {
 
   if (m.confidence < 0.2 || m.inliers < 3) {
     cls = "bad";
-    title = "Ei õnnestunud usaldusväärselt mõõta";
-    body = `Ainult ${m.inliers}/${m.total} mõõtepunkti klappis. Proovi teist meetodit ` +
-      `(pilt vs heli), pikemat akent või suuremat otsinguvahemikku. Kui failid on eri lõikega, ` +
-      `ei ole ühest lineaarsest parandusest kasu.`;
+    title = "Could not measure reliably";
+    body = `Only ${m.inliers}/${m.total} measurement points agreed. Try the other method ` +
+      `(picture vs audio), a longer window or a larger search range. If the files have different cuts, ` +
+      `a single linear correction will not help.`;
   } else if (m.rmsResidualMs > 120) {
     cls = "bad";
-    title = "Triiv ei ole ühtlane — failid on tõenäoliselt eri lõikega";
-    body = `Jääkviga peale lineaarset parandust on ${m.rmsResidualMs.toFixed(0)} ms (max ` +
-      `${m.maxResidualMs.toFixed(0)} ms). Vaata graafikult, kus punktid hüppavad: seal on ` +
-      `lõige erinev. Üks tempoparandus neid kokku ei too.`;
+    title = "Drift is not uniform — the files probably have different cuts";
+    body = `The residual error after a linear correction is ${m.rmsResidualMs.toFixed(0)} ms (max ` +
+      `${m.maxResidualMs.toFixed(0)} ms). Look at the chart for where the points jump: that is where ` +
+      `the cut differs. A single tempo correction will not bring them together.`;
   } else if (Math.abs(rawStart) < 0.04 && Math.abs(rawEnd) < 0.04) {
     cls = "good";
-    title = "Failid on juba sünkroonis";
-    body = `Nihe on kogu pikkuses alla 40 ms. Võid heli otse üle tõsta.`;
+    title = "Files are already in sync";
+    body = `The offset stays below 40 ms for the whole length. You can transfer the audio directly.`;
   } else {
     cls = m.rmsResidualMs > 45 ? "warn" : "good";
-    title = "Lineaarne triiv — parandatav";
+    title = "Linear drift — correctable";
     const ratio = result.ratioGuess;
     body =
-      `Naiivselt üle tõstes oleks heli alguses ${(rawStart * 1000).toFixed(0)} ms ja lõpus ` +
-      `${rawEnd >= 0 ? "+" : ""}${rawEnd.toFixed(2)} s paigast. ` +
-      `Tempo ${m.alpha.toFixed(6)}× parandab selle ära; jääkviga ${m.rmsResidualMs.toFixed(0)} ms. ` +
-      (ratio ? `See vastab tuntud teisendusele <b>${ratio.name}</b> — soovitan „muuda ka kõrgust“ režiimi.` : "");
+      `Transferred naively, the audio would be ${(rawStart * 1000).toFixed(0)} ms off at the start and ` +
+      `${rawEnd >= 0 ? "+" : ""}${rawEnd.toFixed(2)} s off at the end. ` +
+      `Tempo ${m.alpha.toFixed(6)}× corrects this; residual error ${m.rmsResidualMs.toFixed(0)} ms. ` +
+      (ratio ? `This matches the known conversion <b>${ratio.name}</b> — the “change pitch too” mode is recommended.` : "");
   }
 
   el.className = `verdict ${cls}`;
   el.innerHTML = `<i class="dot"></i><div><h3>${title}</h3><p>${body}</p></div>`;
 
   $("#readout").innerHTML = [
-    box("Nihe algul", `${(rawStart * 1000).toFixed(0)} ms`, "enne parandust"),
-    box("Nihe lõpus", `${rawEnd >= 0 ? "+" : ""}${rawEnd.toFixed(2)} s`, `${fmtTime(dur)} juures`),
+    box("Offset at start", `${(rawStart * 1000).toFixed(0)} ms`, "before correction"),
+    box("Offset at end", `${rawEnd >= 0 ? "+" : ""}${rawEnd.toFixed(2)} s`, `at ${fmtTime(dur)}`),
     box("Tempo", `${m.alpha.toFixed(6)}×`, `${ppm >= 0 ? "+" : ""}${ppm.toFixed(0)} ppm`),
-    box("Jääkviga", `${m.rmsResidualMs.toFixed(0)} ms`, `max ${m.maxResidualMs.toFixed(0)} ms`),
-    box("Mõõtepunkte", `${m.inliers}/${m.total}`, `meetod: ${run.method === "video" ? "pilt" : "heli"}`),
-    box("Kindlus", `${(m.confidence * 100).toFixed(0)} %`, result.runs.length > 1 ? "parim kahest" : ""),
+    box("Residual error", `${m.rmsResidualMs.toFixed(0)} ms`, `max ${m.maxResidualMs.toFixed(0)} ms`),
+    box("Measurement points", `${m.inliers}/${m.total}`, `method: ${run.method === "video" ? "picture" : "audio"}`),
+    box("Confidence", `${(m.confidence * 100).toFixed(0)} %`, result.runs.length > 1 ? "best of two" : ""),
   ].join("");
 }
 
@@ -333,17 +333,17 @@ function drawWaveFrame(dataA, dataB) {
     colour: "#7f8ca6",
     label: `A · ${state.a.info?.path ?? ""}`,
     cursorX: state.waveCursor,
-    empty: "laen…",
+    empty: "loading…",
   });
   drawWave($("#wave-b"), {
     data: dataB ?? state.dataB,
     start, end,
     colour: "#4dd4e0",
-    label: `B parandatuna · α=${state.model.alpha.toFixed(6)} β=${(state.model.beta * 1000).toFixed(0)} ms`,
+    label: `B corrected · α=${state.model.alpha.toFixed(6)} β=${(state.model.beta * 1000).toFixed(0)} ms`,
     cursorX: state.waveCursor,
-    empty: "laen…",
+    empty: "loading…",
   });
-  $("#zoom-label").textContent = `${span.toFixed(span < 2 ? 2 : 1)} s aknas`;
+  $("#zoom-label").textContent = `${span.toFixed(span < 2 ? 2 : 1)} s window`;
   $("#wave-time").textContent = `${fmtTime(start)} – ${fmtTime(end)}`;
   drawCorr($("#corr-curve"), state.corr, state.corrOffset, currentOffsetAt(viewCentre()));
 }
@@ -413,8 +413,8 @@ async function measureHere() {
     if (res.score < MIN_ANCHOR_SCORE) {
       drawWaveFrame();
       toast(
-        `Nõrk vaste siin (r=${res.score.toFixed(2)}) — ei joondanud. ` +
-        `Proovi kohta, kus on selge löök või stseenivahetus, või suurenda akent.`,
+        `Weak match here (r=${res.score.toFixed(2)}) — not aligned. ` +
+        `Try a spot with a clear hit or scene change, or widen the window.`,
         true
       );
       return;
@@ -429,7 +429,7 @@ async function measureHere() {
 
     const moved = (res.offset - res.modelOffset) * 1000;
     toast(
-      `Joondatud ${fmtTime(res.t)} juures: nihutasin ${moved >= 0 ? "+" : ""}${moved.toFixed(0)} ms ` +
+      `Aligned at ${fmtTime(res.t)}: shifted by ${moved >= 0 ? "+" : ""}${moved.toFixed(0)} ms ` +
       `(r=${res.score.toFixed(2)})`
     );
   } catch (err) {
@@ -453,7 +453,7 @@ async function refit() {
     redrawChart();
     refreshWaves();
     refreshCommand();
-    toast(`Sobitatud uuesti: ${res.model.inliers}/${res.model.total} punkti, jääk ${res.model.rmsResidualMs.toFixed(0)} ms`);
+    toast(`Refitted: ${res.model.inliers}/${res.model.total} points, residual ${res.model.rmsResidualMs.toFixed(0)} ms`);
   } catch (err) {
     toast(err.message, true);
   }
@@ -517,10 +517,10 @@ async function runExport() {
     const el = $("#export-result");
     el.hidden = false;
     el.innerHTML =
-      `Valmis: <code>${res.path}</code> · ${bytes(res.sizeBytes)} ` +
-      `<a href="/api/download?path=${encodeURIComponent(res.path)}">laadi alla</a>` +
-      `<br><small>Konteineris: <code>${res.abs}</code> — hostis kaustas <code>work/exports/</code>.</small>`;
-    toast("Eksport valmis");
+      `Done: <code>${res.path}</code> · ${bytes(res.sizeBytes)} ` +
+      `<a href="/api/download?path=${encodeURIComponent(res.path)}">download</a>` +
+      `<br><small>In the container: <code>${res.abs}</code> — on the host under <code>work/exports/</code>.</small>`;
+    toast("Export finished");
   } catch (err) {
     progress("#export-progress", null);
     toast(err.message, true);
@@ -618,7 +618,7 @@ function bindChartInteraction() {
 }
 
 function bindControls() {
-  $("#btn-reload-files").onclick = () => loadFiles().then(() => toast("Nimekiri värskendatud"));
+  $("#btn-reload-files").onclick = () => loadFiles().then(() => toast("List refreshed"));
   $("#file-a").onchange = () => selectFile("a");
   $("#file-b").onchange = () => selectFile("b");
   $("#stream-a").onchange = () => { state.a.stream = +$("#stream-a").value || 0; refreshWaves(); };
@@ -683,8 +683,8 @@ function bindControls() {
   $("#out-keep").onchange = refreshCommand;
   $("#btn-copy-cmd").onclick = () => {
     navigator.clipboard.writeText($("#cmd-text").textContent).then(
-      () => toast("Kopeeritud"),
-      () => toast("Kopeerimine ebaõnnestus", true)
+      () => toast("Copied"),
+      () => toast("Copy failed", true)
     );
   };
 
@@ -696,10 +696,10 @@ function bindChartModeToggle() {
   const btn = document.createElement("button");
   btn.className = "ghost sm";
   btn.style.marginLeft = "auto";
-  btn.textContent = "Näita toorest triivi";
+  btn.textContent = "Show raw drift";
   btn.onclick = () => {
     state.chartMode = state.chartMode === "residual" ? "raw" : "residual";
-    btn.textContent = state.chartMode === "raw" ? "Näita jääkviga" : "Näita toorest triivi";
+    btn.textContent = state.chartMode === "raw" ? "Show residual error" : "Show raw drift";
     const raw = state.chartMode === "raw";
     wrap.querySelectorAll("span").forEach((s, i) => { if (i < 3) s.hidden = raw; });
     redrawChart();
@@ -715,12 +715,12 @@ async function checkHealth() {
       el.textContent = `ffmpeg OK · ${h.mediaDir}`;
       el.className = "pill pill-ok";
     } else {
-      el.textContent = "ffmpeg puudub";
+      el.textContent = "ffmpeg missing";
       el.className = "pill pill-bad";
-      toast(`ffmpeg ei vasta: ${h.ffmpegError}`, true);
+      toast(`ffmpeg not responding: ${h.ffmpegError}`, true);
     }
   } catch (err) {
-    el.textContent = "server ei vasta";
+    el.textContent = "server not responding";
     el.className = "pill pill-bad";
   }
 }

@@ -12,7 +12,7 @@ FROM debian:bookworm-slim AS bundle
 # which is what `npm start` from source uses
 ARG ELECTRON_VERSION=33.2.0
 ARG ELECTRON_PLATFORM=win32-x64
-ARG APP_NAME=Helirea-uhitaja
+ARG APP_NAME=Audio-Track-Merger
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends ca-certificates curl unzip \

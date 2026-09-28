@@ -5,10 +5,10 @@ services:
     ports:
       - "5174:5174"
     volumes:
-      # Sinu videod. Muuda vasakut poolt kui failid on mujal,
-      # nt:  - "D:/Videod:/media:ro"
+      # Your videos. Change the left side if the files live elsewhere,
+      # e.g.:  - "D:/Videos:/media:ro"
       - ./media:/media:ro
-      # Vaheandmed + eksporditud failid (jaab alles ka peale konteineri sulgemist)
+      # Intermediate data + exported files (persists after the container stops)
       - ./work:/work
     environment:
       - MEDIA_DIR=/media

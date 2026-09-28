@@ -102,7 +102,7 @@ export function drawWave(canvas, { data, start, end, colour, label, cursorX = nu
   }
 }
 
-/** Cross-correlation score vs lag, for the "Mõõda siit" probe. */
+/** Cross-correlation score vs lag, for the "Measure here" probe. */
 export function drawCorr(canvas, curve, chosenOffset, currentOffset) {
   const { ctx, w, h } = crisp(canvas);
   ctx.fillStyle = "#13161d";
@@ -113,7 +113,7 @@ export function drawCorr(canvas, curve, chosenOffset, currentOffset) {
     ctx.font = "11px system-ui, sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText("Korrelatsioonikõver — vajuta „Mõõda siit“", w / 2, h / 2);
+    ctx.fillText("Correlation curve — press “Measure here”", w / 2, h / 2);
     return;
   }
 
@@ -159,8 +159,8 @@ export function drawCorr(canvas, curve, chosenOffset, currentOffset) {
     ctx.fillText(text, x + (x > w - 70 ? -4 : 4), 3);
   };
 
-  mark(currentOffset, "#4dd4e0", `praegune ${(currentOffset * 1000).toFixed(0)} ms`);
-  mark(chosenOffset, "#e0b447", `tipp ${(chosenOffset * 1000).toFixed(0)} ms`);
+  mark(currentOffset, "#4dd4e0", `current ${(currentOffset * 1000).toFixed(0)} ms`);
+  mark(chosenOffset, "#e0b447", `peak ${(chosenOffset * 1000).toFixed(0)} ms`);
 
   ctx.fillStyle = "#5e6679";
   ctx.font = "10px ui-monospace, Consolas, monospace";

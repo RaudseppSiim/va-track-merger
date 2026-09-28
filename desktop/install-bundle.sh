@@ -2,12 +2,12 @@
 # Copy the prepared Electron bundle onto the host's mounted dist/ directory.
 set -eu
 
-TARGET_NAME=HelireaUhitaja
+TARGET_NAME=AudioTrackMerger
 DEST="/out/${TARGET_NAME}"
 APP_NAME="$(cat /opt/appname)"
 
 if [ ! -d /out ]; then
-  echo "Viga: /out ei ole ühendatud. Kasuta: docker compose --profile desktop run --rm desktop-build" >&2
+  echo "Error: /out is not mounted. Use: docker compose --profile desktop run --rm desktop-build" >&2
   exit 1
 fi
 
@@ -17,8 +17,8 @@ mkdir -p "$DEST"
 cp -a /opt/bundle/. "$DEST/"
 
 echo
-echo "Töölauapakk on valmis:  dist/${TARGET_NAME}/${APP_NAME}.exe"
+echo "Desktop bundle is ready:  dist/${TARGET_NAME}/${APP_NAME}.exe"
 echo
-echo "Käivita see hostis. Aken otsib ise projektikausta üles, käivitab"
-echo "konteineri kui see veel ei jookse, ja avab kasutajaliidese."
+echo "Run it on the host. The window finds the project folder on its own, starts"
+echo "the container if it is not running yet, and opens the UI."
 echo

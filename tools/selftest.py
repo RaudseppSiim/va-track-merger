@@ -24,7 +24,7 @@ def check(path_a: str, path_b: str, true_alpha: float, true_beta: float) -> int:
     info_b = ffmpeg.probe(path_b)
     print(f"A  {os.path.basename(path_a)}  {info_a.duration:.3f}s  {info_a.fps:.3f}fps")
     print(f"B  {os.path.basename(path_b)}  {info_b.duration:.3f}s  {info_b.fps:.3f}fps")
-    print(f"fps-suhtest alpha = {analysis.ratio_from_fps(info_a.fps, info_b.fps):.6f}")
+    print(f"alpha from fps ratio = {analysis.ratio_from_fps(info_a.fps, info_b.fps):.6f}")
     print()
 
     worst = None
@@ -47,13 +47,13 @@ def check(path_a: str, path_b: str, true_alpha: float, true_beta: float) -> int:
         ) * 1000
 
         print(f"[{method:5s}] alpha={model.alpha:.6f}  beta={model.beta:+.3f}s  "
-              f"jaak={model.rmsResidualMs:5.1f}ms  {model.inliers}/{model.total}  "
-              f"kindlus={model.confidence:.2f}  ({elapsed:.1f}s)")
-        print(f"          viga alguses {err_start:6.1f} ms   viga lopus {err_end:6.1f} ms")
+              f"resid={model.rmsResidualMs:5.1f}ms  {model.inliers}/{model.total}  "
+              f"conf={model.confidence:.2f}  ({elapsed:.1f}s)")
+        print(f"          error at start {err_start:6.1f} ms   error at end {err_end:6.1f} ms")
 
         guess = analysis.classify_ratio(model.alpha)
         if guess:
-            print(f"          tuvastatud: {guess['name']}")
+            print(f"          detected: {guess['name']}")
 
         score = max(err_start, err_end)
         if worst is None or score < worst[0]:
@@ -62,13 +62,13 @@ def check(path_a: str, path_b: str, true_alpha: float, true_beta: float) -> int:
 
     best_err, best_method, best_model = worst
     params = render.SyncParams(alpha=best_model.alpha, beta=best_model.beta, pitch="tape")
-    print("filtriahel:", render.build_filter(params, duration=info_a.duration))
+    print("filter chain:", render.build_filter(params, duration=info_a.duration))
     print()
 
     if best_err <= TOLERANCE_MS:
-        print(f"OK  parim meetod '{best_method}' eksib max {best_err:.1f} ms (<= {TOLERANCE_MS:.0f} ms)")
+        print(f"OK  best method '{best_method}' is off by at most {best_err:.1f} ms (<= {TOLERANCE_MS:.0f} ms)")
         return 0
-    print(f"FAIL  parim meetod '{best_method}' eksib {best_err:.1f} ms (> {TOLERANCE_MS:.0f} ms)")
+    print(f"FAIL  best method '{best_method}' is off by {best_err:.1f} ms (> {TOLERANCE_MS:.0f} ms)")
     return 1
 
 

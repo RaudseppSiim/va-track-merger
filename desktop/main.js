@@ -110,7 +110,7 @@ function createWindow(loadingHtml) {
     height: 950,
     minWidth: 980,
     backgroundColor: "#0f1116",
-    title: "Helirea ühitaja",
+    title: "Audio Track Merger",
     autoHideMenuBar: true,
     webPreferences: { nodeIntegration: false, contextIsolation: true },
   });
@@ -137,9 +137,9 @@ const LOADING = `
   .dots::after { content:""; animation: d 1.4s steps(4,end) infinite; }
   @keyframes d { 0%{content:""} 25%{content:"."} 50%{content:".."} 75%{content:"..."} }
 </style></head><body><div class="box">
-  <h1>Helirea ühitaja</h1>
-  <p class="dots">Käivitan konteinerit</p>
-  <p style="margin-top:8px;font-size:12px">Esimene kord võtab paar minutit — ehitab image'i</p>
+  <h1>Audio Track Merger</h1>
+  <p class="dots">Starting the container</p>
+  <p style="margin-top:8px;font-size:12px">The first run takes a few minutes — it builds the image</p>
 </div></body></html>`;
 
 app.whenReady().then(async () => {
@@ -150,12 +150,12 @@ app.whenReady().then(async () => {
     if (!PROJECT_DIR) {
       await dialog.showMessageBox(win, {
         type: "error",
-        title: "Projektikausta ei leidnud",
-        message: "docker-compose.yml ei ole leitav.",
+        title: "Project folder not found",
+        message: "docker-compose.yml could not be found.",
         detail:
-          "Hoia see aken projektikausta sees (nt dist/HelireaUhitaja/ all), " +
-          "või osuta kaust keskkonnamuutujaga MERGER_PROJECT_DIR.\n\n" +
-          `Teine variant: käivita server ise käsuga "docker compose up" — aken ootab ${URL}.`,
+          "Keep this window inside the project folder (e.g. under dist/AudioTrackMerger/), " +
+          "or point to the folder with the MERGER_PROJECT_DIR environment variable.\n\n" +
+          `Alternatively, start the server yourself with "docker compose up" — the window waits for ${URL}.`,
       });
       app.quit();
       return;
@@ -163,12 +163,12 @@ app.whenReady().then(async () => {
     if (!dockerAvailable()) {
       await dialog.showMessageBox(win, {
         type: "error",
-        title: "Docker puudub",
-        message: "Docker ei vasta.",
+        title: "Docker missing",
+        message: "Docker is not responding.",
         detail:
-          "Käivita Docker Desktop ja proovi uuesti, või käivita server käsitsi:\n\n" +
+          "Start Docker Desktop and try again, or start the server manually:\n\n" +
           "    docker compose up\n\n" +
-          `Aken ootab aadressi ${URL}.`,
+          `The window waits for ${URL}.`,
       });
       app.quit();
       return;
@@ -177,9 +177,9 @@ app.whenReady().then(async () => {
     if (!(await waitForServer())) {
       await dialog.showMessageBox(win, {
         type: "error",
-        title: "Server ei käivitunud",
-        message: `${URL} ei vastanud ${START_TIMEOUT_MS / 1000} sekundi jooksul.`,
-        detail: "Vaata terminali logi — ilmselt jäi image'i ehitamine pooleli.",
+        title: "Server did not start",
+        message: `${URL} did not respond within ${START_TIMEOUT_MS / 1000} seconds.`,
+        detail: "Check the terminal log — the image build probably did not finish.",
       });
       app.quit();
       return;

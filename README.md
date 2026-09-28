@@ -1,58 +1,63 @@
-# Helirea ühitaja
+# Audio Track Merger
 
-Võtab helirea ühelt videolt ja paneb selle teisele versioonile samast videost —
-ja näitab enne, kas heli triivib pildist eemale ja kui palju.
+Takes the audio track from one video and puts it onto another version of the
+same video — and shows beforehand whether the audio drifts away from the picture
+and by how much.
 
-Miks lihtne `ffmpeg -map` tavaliselt ei tööta: kaks väljalaset samast filmist on
-sageli eri kaadrisagedusega. 25 fps PAL-versioon on 23.976 fps versioonist
-**4.1% lühem**, mis teeb **147 sekundit tunnis** — poole filmi peal on heli juba
-minuti võrra paigast. `-map` ei paranda seda, sest ta ei muuda kestust.
+Why a plain `ffmpeg -map` usually doesn't work: two releases of the same film
+are often at different frame rates. A 25 fps PAL version is **4.1% shorter**
+than a 23.976 fps version, which adds up to **147 seconds per hour** — halfway
+through the film the audio is already a minute off. `-map` doesn't fix this,
+because it doesn't change the duration.
 
 ---
 
-## Kiire algus
+## Quick start
 
 ```bash
 docker compose up
 ```
 
-Ava <http://localhost:5174>. Videod käivad kausta `media/`, valmis failid
-tulevad kausta `work/exports/`.
+Open <http://localhost:5174>. Videos go in the `media/` folder, finished files
+end up in `work/exports/`.
 
-Kui failid on mujal, muuda `docker-compose.yml`-is volume'i:
+If your files live elsewhere, change the volume in `docker-compose.yml`:
 
 ```yaml
     volumes:
-      - "D:/Filmid:/media:ro"
+      - "D:/Movies:/media:ro"
       - ./work:/work
 ```
 
-### Natiivne aken
+### Native window
 
-Ehita pakk — **hostis pole Node'i ega npm-i vaja**, konteiner teeb kõik ära:
+Build the package — **no Node or npm needed on the host**, the container does
+everything:
 
 ```bash
 docker compose --profile desktop run --rm desktop-build
 ```
 
-Siis käivita `dist/HelireaUhitaja/Helirea-uhitaja.exe`.
+Then run `dist/AudioTrackMerger/Audio-Track-Merger.exe`.
 
-Aken otsib ise projektikausta üles, käivitab konteineri kui see veel ei jookse,
-ootab valmis ja avab kasutajaliidese. Kui *tema* konteineri käivitas, peatab ta
-selle akna sulgemisel; juba töötavat konteinerit ta ei puutu.
+The window finds the project folder on its own, starts the container if it
+isn't running yet, waits until it's ready and opens the UI. If *it* started the
+container, it stops it when the window is closed; a container that was already
+running is left alone.
 
-Ehitamine ei vaja Node'i sellepärast, et Electroni äpp *ongi* lihtsalt
-`resources/app/` valmis binaari kõrval — ei kompilaatorit, ei pakendajat. Pilt
-tõmbab Electroni ametliku arhiivi ja paneb kaks faili sisse.
+The build doesn't need Node because the Electron app *is* simply
+`resources/app/` next to the prebuilt binary — no compiler, no bundler. The
+image downloads the official Electron archive and drops two files into it.
 
-Teise platvormi jaoks vaheta `docker-compose.yml`-is `ELECTRON_PLATFORM`
+For another platform, change `ELECTRON_PLATFORM` in `docker-compose.yml`
 (`linux-x64`, `darwin-arm64`).
 
-Electron ise konteineris ei jookse — see vajaks X11/VNC-edastust ja oleks
-brauserist halvem. Seega: Docker teeb töö, aken on hostis.
+Electron itself doesn't run inside the container — that would need X11/VNC
+forwarding and would be worse than the browser. So: Docker does the work, the
+window lives on the host.
 
 <details>
-<summary>Arendus otse allikast (vajab Node 18+)</summary>
+<summary>Development straight from source (needs Node 18+)</summary>
 
 ```bash
 cd desktop && npm install && npm start
@@ -61,137 +66,148 @@ cd desktop && npm install && npm start
 
 ---
 
-## Kuidas kasutada
+## How to use it
 
-**1. Failid.** `A` on video, mille **pilti hoiame**. `B` on fail, kust **heli
-võtame** — võib olla ka pildita helifail (`.mka`, `.ac3`, `.flac`…).
-Kaadrisageduste vahe näidatakse kohe ära.
+**1. Files.** `A` is the video whose **picture we keep**. `B` is the file we
+**take the audio from** — it can also be an audio-only file (`.mka`, `.ac3`,
+`.flac`…). The frame rate difference is shown right away.
 
-**2. Mõõda nihe.** Tööriist loeb mõlemast failist signaali ja mõõdab ~24 kohas
-üle filmi, kui palju heli pildist eemale on. Kaks meetodit:
+**2. Measure the offset.** The tool reads a signal from both files and measures
+at ~24 points across the film how far the audio is from the picture. Two
+methods:
 
-| Meetod | Mida korreleerib | Millal |
+| Method | What it correlates | When |
 |---|---|---|
-| **pilt** | kaadritevaheline liikumisenergia | sama montaaž, ükskõik mis keeled — keelest täiesti sõltumatu |
-| **heli** | mitmeribaline spektraalvoog | kui pilt on eri kvaliteediga või B-l pole pilti; toetub muusika/efektide kihile |
+| **picture** | inter-frame motion energy | same cut, any languages — completely language-independent |
+| **audio** | multi-band spectral flux | when the picture differs in quality or B has no picture; relies on the music/effects layer |
 
-Vaikimisi jookseb mõlemad ja valib kindlama.
+By default both run and the more confident one is chosen.
 
-**3. Graafik on vastus.** Kaks vaadet, nupp „Näita toorest triivi" vahetab:
+**3. The chart is the answer.** Two views, the "Show raw drift" button switches
+between them:
 
-- **Jääkviga** — mis jääb üle *peale* parandust. Rohelises ribas (±40 ms) =
-  märkamatu. Kõik punktid rohelises = lineaarne parandus katab asja täielikult.
-- **Toores triiv** — mis juhtuks naiivselt üle tõstes. **Sirge kaldjoon** =
-  kaadrisageduse vahe, parandatav. **Trepp või hüpped** = failid on eri lõikega
-  (erinev intro, reklaamipausid) ja üks tempoparandus neid kokku ei too.
+- **Residual error** — what remains *after* the correction. Inside the green
+  band (±40 ms) = imperceptible. All points in the green = a linear correction
+  covers it completely.
+- **Raw drift** — what would happen with a naive transfer. **A straight sloped
+  line** = frame rate difference, correctable. **A staircase or jumps** = the
+  files have different cuts (different intro, ad breaks) and a single tempo
+  correction won't bring them together.
 
-**4. Parandus.** Mõõdetud väärtused on juba sees. Käsitsi:
+**4. Correction.** The measured values are already filled in. Manually:
 
-- **Nihe** — konstantne viide millisekundites.
-- **Tempo** — kiiruse kordaja. Rippmenüüs on tuntud suhted (PAL 25↔23.976,
-  NTSC 24↔23.976 jne); kui mõõdetud väärtus ühega neist kattub, ütleb tööriist
-  seda ise.
-- **Helikõrgus** — `atempo` hoiab kõrguse paigal, `asetrate` muudab kiirust ja
-  kõrgust koos. **PAL-paranduseks on `asetrate` õigem**: PAL-i kiirendus tõstis
-  omal ajal ka helikõrgust 4%, ja `asetrate` võtab selle tagasi.
-- Doonorrea **lohistamine** hiirega muudab nihet; „Mõõda siit" mõõdab praeguses
-  vaates ja joondab. Nõrga vaste korral (korrelatsioon alla 0.35) ta *ei*
-  joonda, vaid ütleb seda — vale ankur lõhuks hea mudeli ära.
+- **Offset** — a constant delay in milliseconds.
+- **Tempo** — the speed multiplier. The dropdown has the well-known ratios
+  (PAL 25↔23.976, NTSC 24↔23.976 etc.); if the measured value matches one of
+  them, the tool says so itself.
+- **Pitch** — `atempo` keeps the pitch in place, `asetrate` changes speed and
+  pitch together. **For PAL correction `asetrate` is the right one**: the PAL
+  speed-up raised the pitch by 4% back in the day, and `asetrate` takes that
+  back.
+- **Dragging** the donor track with the mouse changes the offset; "Measure here"
+  measures in the current view and aligns. On a weak match
+  (correlation below 0.35) it does *not* align but says so — a wrong anchor
+  would break a good model.
 
-Lainekujud on ülestikku ja alumine on **juba parandatud** — kui löögid on
-kohakuti, on asi paigas.
+The waveforms are stacked and the lower one is **already corrected** — when the
+transients line up, it's in sync.
 
-**5. Kuula üle.** Renderdab lühikese lõigu. Vaikimisi „originaal vasakul / uus
-paremal" — kõrvaklappidega kuuleb nihet kohe, palju kiiremini kui vaadates.
+**5. Listen.** Renders a short excerpt. By default "original left / new right"
+— with headphones you hear an offset immediately, much faster than looking.
 
-**6. Ekspordi.** Video kopeeritakse muutmata (`-c:v copy`), ainult heli
-kodeeritakse. Originaalheli jääb soovi korral teiseks rajaks. „Vastav ffmpeg
-käsk" all on sama asi käsitsi jooksutamiseks.
-
----
-
-## Kuidas mõõtmine töötab
-
-Mudel on lineaarne: `tB = α·tA + β`, kus `α` on ühtlasi `atempo` kordaja.
-
-1. **Signaal.** Pildist: 12.5 fps-ni hõrendatud 32×18 halltoonkaadrid,
-   kaadritevaheline muutus. Helist: 10-ribaline spektraalvoog 50 Hz võrgus.
-   Mõlemad vahemällu (`work/cache/`), nii et seadete muutmine on kohene.
-
-2. **Jäme läbimine.** Lühikesed aknad **tugevalt hägustatud** signaalil.
-   Hägustamine on hädavajalik: `W`-sekundilise akna otsad triivivad omavahel
-   `W·(1−α)` võrra laiali — PAL-i juures 0.32 s 8-sekundilises aknas. Sellest
-   kitsamad tunnused ei kohtu üheski nihkes ja korrelatsioonitipp kaob.
-
-3. **Sobitamine RANSAC-iga.** Vähimruutude meetod ei kõlba: korduva mustriga
-   pildil annab korrelatsioon vähemuse enesekindlaid vasteid, mis on sekundeid
-   mööda, ja need veavad mediaanipõhise sobituse joonelt ära. Konsensus
-   leitakse hääletamisega üle kõigi punktipaaride.
-
-4. **Täppisastmed.** B ajastatakse leitud mudeliga ümber ja mõõdetakse uuesti —
-   nüüd on jääkvenitus tühine, nii et pikad teravad aknad töötavad ja lahutus
-   on millisekundites. Kui täppisaste tuleb tagasi *väiksema* konsensusega kui
-   enne, on ta kinni haakunud kõrvaltipu külge ja tulemus visatakse ära.
-
-`confidence` kannab sisemist kooskõla (mitu punkti nõustus, kui laiali need on,
-kui suur jääk). Kui see on madal, ütleb tööriist „ei õnnestunud usaldusväärselt
-mõõta" — mitte ei anna ilusa välimusega vale vastust.
+**6. Export.** The video is copied unchanged (`-c:v copy`), only the audio is
+encoded. Optionally the original audio stays as a second track. Under
+"Corresponding ffmpeg command" is the same thing for running by hand.
 
 ---
 
-## Kontrollimine
+## How the measurement works
 
-Testklipid, mille triiv on **täpselt teada**:
+The model is linear: `tB = α·tA + β`, where `α` is also the `atempo`
+multiplier.
+
+1. **Signal.** From the picture: 32×18 grayscale frames decimated to 12.5 fps,
+   inter-frame change. From the audio: 10-band spectral flux on a 50 Hz grid.
+   Both are cached (`work/cache/`), so changing settings is instant.
+
+2. **Coarse pass.** Short windows on a **heavily smoothed** signal. The
+   smoothing is essential: the ends of a `W`-second window drift apart by
+   `W·(1−α)` — with PAL that's 0.32 s in an 8-second window. Features narrower
+   than that never meet at any lag and the correlation peak disappears.
+
+3. **Fitting with RANSAC.** Least squares won't do: on repetitive footage the
+   correlation yields a minority of confident matches that are seconds off, and
+   those pull a median-based fit off the line. The consensus is found by voting
+   over all point pairs.
+
+4. **Refinement passes.** B is re-timed with the found model and measured
+   again — now the residual stretch is negligible, so long sharp windows work
+   and the resolution is in milliseconds. If a refinement pass comes back with
+   *less* consensus than before, it has locked onto a side peak and the result
+   is discarded.
+
+`confidence` carries the internal consistency (how many points agreed, how
+spread out they are, how large the residual is). When it's low, the tool says
+"Could not measure reliably" — instead of handing you a nice-looking wrong
+answer.
+
+---
+
+## Verification
+
+Test clips whose drift is **known exactly**:
 
 ```bash
 python tools/make_test_clips.py media
 python tools/selftest.py media/test_A_23.976fps.mkv media/test_B_25fps.mkv 0.959041 -1.52
 ```
 
-Ootus: mõlemad meetodid tabavad ~20 ms sisse. (Testklippide endi määramatus on
-~21 ms — pool kaadrit 23.976 fps juures —, nii et täpsemat sellega mõõta ei saa.)
+Expectation: both methods land within ~20 ms. (The test clips' own uncertainty
+is ~21 ms — half a frame at 23.976 fps — so nothing finer can be measured with
+them.)
 
-Ja iga päris eksport üle kontrollida — mõõdab valminud faili kaks helirada
-teineteise vastu:
+And check every real export — it measures the finished file's two audio tracks
+against each other:
 
 ```bash
-python tools/verify_export.py work/exports/minu_fail.mkv
+python tools/verify_export.py work/exports/my_file.mkv
 ```
 
-Peab andma „sünkroonis", nihe alla 40 ms mõlemas otsas.
+It should report in sync, with an offset below 40 ms at both ends.
 
 ---
 
-## Kui ei õnnestu
+## When it doesn't work
 
-**„Triiv ei ole ühtlane — failid on tõenäoliselt eri lõikega."** Vaata toorest
-triivi: kus punktid hüppavad, seal on lõige erinev. Lineaarne parandus ei aita;
-praegune tööriist parandab ühe sirge korraga. Töötav lahendus: ekspordi film
-tükkide kaupa, iga tüki jaoks oma nihe.
+**"Drift is not uniform — the files probably have different cuts."** Look at
+the raw drift:
+where the points jump, the cut differs. A linear correction won't help; the
+current tool corrects one straight line at a time. A working approach: export
+the film in pieces, with its own offset for each piece.
 
-**Mõõtmine ei leia midagi.** Proovi teist meetodit. Kui pildid on eri
-väljalasetest (erinev kärbe, logod, taasrestaureeritud), kasuta heli. Kui
-helikihid on täiesti erinevad (eri muusika), kasuta pilti. Suurenda „Max
-otsing", kui nihe võib olla üle 30 s.
+**The measurement finds nothing.** Try the other method. If the pictures are
+from different releases (different crop, logos, restored), use audio. If the
+audio layers are completely different (different music), use picture. Raise
+"Max search" if the offset might be over 30 s.
 
-**Heli on paigas, aga kõrgus on nihkes.** Vaheta `atempo` ↔ `asetrate`.
+**The audio is in sync but the pitch is off.** Switch `atempo` ↔ `asetrate`.
 
 ---
 
-## Kataloogid
+## Directories
 
 ```
 backend/app/
-  analysis.py   signaalid, korrelatsioon, RANSAC, iteratiivne täpsustus
-  render.py     SyncModel -> ffmpeg filtriahelad, eelvaade, eksport
+  analysis.py   signals, correlation, RANSAC, iterative refinement
+  render.py     SyncModel -> ffmpeg filter chains, preview, export
   main.py       HTTP API
-  cache.py      kettavahemälu dekodeeritud signaalidele
-  jobs.py       taustatööd
-frontend/       ilma ehitussammuta: HTML + ES-moodulid + canvas
-tools/          testklippide generaator, enesetest, ekspordi kontroll
-desktop/        Electroni kest + Dockerfile, mis paki kokku paneb
-dist/           ehitatud töölauapakk (ei lähe versioonihaldusesse)
+  cache.py      on-disk cache for decoded signals
+  jobs.py       background jobs
+frontend/       no build step: HTML + ES modules + canvas
+tools/          test clip generator, self-test, export check
+desktop/        Electron shell + Dockerfile that assembles the package
+dist/           built desktop package (not under version control)
 ```
 
-Lokaalne arendus ilma Dockerita: `./dev.sh` (vajab `.venv`-i ja ffmpeg'i PATH-is
-või `FFMPEG_BIN`/`FFPROBE_BIN` keskkonnamuutujates).
+Local development without Docker: `./dev.sh` (needs a `.venv` and ffmpeg on
+PATH or in the `FFMPEG_BIN`/`FFPROBE_BIN` environment variables).

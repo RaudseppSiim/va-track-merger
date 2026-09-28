@@ -1,44 +1,44 @@
 <!DOCTYPE html>
-<html lang="et">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Helirea ühitaja</title>
+<title>Audio Track Merger</title>
 <link rel="stylesheet" href="style.css">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>🎚️</text></svg>">
 </head>
 <body>
 
 <header class="topbar">
-  <h1>Helirea ühitaja</h1>
+  <h1>Audio Track Merger</h1>
   <div class="spacer"></div>
-  <span id="health" class="pill pill-muted">kontrollin…</span>
+  <span id="health" class="pill pill-muted">checking…</span>
 </header>
 
 <main>
 
-<!-- ─────────────────────────── 1. failid ─────────────────────────── -->
+<!-- ─────────────────────────── 1. files ──────────────────────────── -->
 <section class="card" id="step-files">
   <div class="card-head">
     <span class="step">1</span>
-    <h2>Failid</h2>
-    <button class="ghost" id="btn-reload-files">Värskenda nimekirja</button>
+    <h2>Files</h2>
+    <button class="ghost" id="btn-reload-files">Refresh list</button>
   </div>
 
   <div class="two-col">
     <div class="file-slot" data-slot="a">
-      <label>A — video, mille pilti hoiame</label>
-      <select id="file-a"><option value="">— vali fail —</option></select>
+      <label>A — video whose picture we keep</label>
+      <select id="file-a"><option value="">— choose a file —</option></select>
       <div class="meta" id="meta-a">—</div>
-      <label class="sub">Originaalheli rada (jääb 2. rajaks)</label>
+      <label class="sub">Original audio track (kept as track 2)</label>
       <select id="stream-a"></select>
     </div>
 
     <div class="file-slot" data-slot="b">
-      <label>B — fail, kust heli võtame</label>
-      <select id="file-b"><option value="">— vali fail —</option></select>
+      <label>B — file we take the audio from</label>
+      <select id="file-b"><option value="">— choose a file —</option></select>
       <div class="meta" id="meta-b">—</div>
-      <label class="sub">Doonorheli rada</label>
+      <label class="sub">Donor audio track</label>
       <select id="stream-b"></select>
     </div>
   </div>
@@ -46,27 +46,27 @@
   <p class="hint" id="fps-hint"></p>
 </section>
 
-<!-- ─────────────────────────── 2. analüüs ────────────────────────── -->
+<!-- ─────────────────────────── 2. analysis ───────────────────────── -->
 <section class="card" id="step-analyse">
   <div class="card-head">
     <span class="step">2</span>
-    <h2>Mõõda nihe</h2>
+    <h2>Measure offset</h2>
     <details class="opts">
-      <summary>Seaded</summary>
+      <summary>Settings</summary>
       <div class="opts-body">
-        <label>Meetod
+        <label>Method
           <select id="opt-method">
-            <option value="both">Mõlemad (soovitatud)</option>
-            <option value="video">Pilt — keelest sõltumatu</option>
-            <option value="audio">Heli — muusika/efektid</option>
+            <option value="both">Both (recommended)</option>
+            <option value="video">Picture — language-independent</option>
+            <option value="audio">Audio — music/effects</option>
           </select>
         </label>
-        <label>Mõõtepunkte <input type="number" id="opt-windows" value="24" min="3" max="120"></label>
-        <label>Akna pikkus (s) <input type="number" id="opt-winsec" value="24" min="2" max="180"></label>
-        <label>Max otsing (s) <input type="number" id="opt-maxshift" value="30" min="1" max="600"></label>
+        <label>Measurement points <input type="number" id="opt-windows" value="24" min="3" max="120"></label>
+        <label>Window length (s) <input type="number" id="opt-winsec" value="24" min="2" max="180"></label>
+        <label>Max search (s) <input type="number" id="opt-maxshift" value="30" min="1" max="600"></label>
       </div>
     </details>
-    <button class="primary" id="btn-analyse" disabled>Analüüsi</button>
+    <button class="primary" id="btn-analyse" disabled>Analyse</button>
   </div>
 
   <div class="progress" id="analyse-progress" hidden>
@@ -74,8 +74,8 @@
   </div>
 
   <div id="analyse-empty" class="empty">
-    Vali mõlemad failid ja vajuta <b>Analüüsi</b>. Tööriist loeb mõlemast failist
-    signaali ja mõõdab, kui palju heli pildist eemale triivib.
+    Choose both files and press <b>Analyse</b>. The tool reads a signal from both
+    files and measures how far the audio drifts from the picture.
   </div>
 
   <div id="analyse-result" hidden>
@@ -84,11 +84,11 @@
     <div class="chart-wrap">
       <canvas id="drift-chart" height="300"></canvas>
       <div class="chart-legend">
-        <span><i class="sw sw-good"></i>±40 ms — märkamatu</span>
-        <span><i class="sw sw-warn"></i>±100 ms — tajutav</span>
-        <span><i class="sw sw-bad"></i>üle selle — selgelt paigast</span>
-        <span><i class="sw sw-pt"></i>mõõtepunkt</span>
-        <span><i class="sw sw-out"></i>kõrvale jäetud</span>
+        <span><i class="sw sw-good"></i>±40 ms — imperceptible</span>
+        <span><i class="sw sw-warn"></i>±100 ms — perceptible</span>
+        <span><i class="sw sw-bad"></i>beyond that — clearly out of sync</span>
+        <span><i class="sw sw-pt"></i>measurement point</span>
+        <span><i class="sw sw-out"></i>rejected</span>
       </div>
     </div>
 
@@ -96,40 +96,40 @@
   </div>
 </section>
 
-<!-- ─────────────────────────── 3. parandus ───────────────────────── -->
+<!-- ─────────────────────────── 3. correction ─────────────────────── -->
 <section class="card" id="step-fix" hidden>
   <div class="card-head">
     <span class="step">3</span>
-    <h2>Parandus</h2>
-    <button class="ghost" id="btn-reset-model">Taasta mõõdetud väärtused</button>
+    <h2>Correction</h2>
+    <button class="ghost" id="btn-reset-model">Restore measured values</button>
   </div>
 
   <div class="controls">
     <div class="ctl">
-      <label for="in-beta">Nihe algusest <span class="unit">ms</span></label>
+      <label for="in-beta">Offset at start <span class="unit">ms</span></label>
       <input type="number" id="in-beta" step="1" value="0">
       <input type="range" id="rng-beta" min="-5000" max="5000" step="1" value="0">
-      <small>Positiivne = doonorheli algab hiljem ja seda lõigatakse eest ära.</small>
+      <small>Positive = donor audio starts later and is trimmed from the front.</small>
     </div>
 
     <div class="ctl">
       <label for="in-alpha">Tempo <span class="unit">×</span></label>
       <input type="number" id="in-alpha" step="0.000001" value="1">
       <input type="range" id="rng-alpha" min="0.9" max="1.1" step="0.000001" value="1">
-      <small id="alpha-note">1.000000 = muutmata. Triiv <b id="ppm">0</b> ppm ≈ <b id="perhour">0 s/h</b>.</small>
+      <small id="alpha-note">1.000000 = unchanged. Drift <b id="ppm">0</b> ppm ≈ <b id="perhour">0 s/h</b>.</small>
     </div>
 
     <div class="ctl">
-      <label>Tuntud suhted</label>
-      <select id="ratio-presets"><option value="">— vali —</option></select>
-      <label class="check"><input type="checkbox" id="lock-alpha"> Lukusta tempo ja sobita ainult nihe</label>
+      <label>Known ratios</label>
+      <select id="ratio-presets"><option value="">— choose —</option></select>
+      <label class="check"><input type="checkbox" id="lock-alpha"> Lock tempo and fit only the offset</label>
     </div>
 
     <div class="ctl">
-      <label>Kõrgus / helitugevus</label>
+      <label>Pitch / volume</label>
       <select id="in-pitch">
-        <option value="preserve">Säilita helikõrgus (atempo)</option>
-        <option value="tape">Muuda ka kõrgust (asetrate) — PAL-paranduseks õigem</option>
+        <option value="preserve">Preserve pitch (atempo)</option>
+        <option value="tape">Change pitch too (asetrate) — better for PAL correction</option>
       </select>
       <label class="inline">Gain <span class="unit">dB</span>
         <input type="number" id="in-gain" step="0.5" value="0" class="narrow">
@@ -139,76 +139,76 @@
 
   <div class="wave-panel">
     <div class="wave-head">
-      <span>Lainekujud — ülemine on A originaalheli, alumine doonorheli <b>peale parandust</b></span>
+      <span>Waveforms — top is A's original audio, bottom is the donor audio <b>after correction</b></span>
       <div class="spacer"></div>
       <span class="zoom-label" id="zoom-label"></span>
-      <button class="ghost sm" data-jump="0">Algus</button>
-      <button class="ghost sm" data-jump="0.5">Keskel</button>
-      <button class="ghost sm" data-jump="0.98">Lõpp</button>
+      <button class="ghost sm" data-jump="0">Start</button>
+      <button class="ghost sm" data-jump="0.5">Middle</button>
+      <button class="ghost sm" data-jump="0.98">End</button>
       <button class="ghost sm" id="btn-zoom-out">−</button>
       <button class="ghost sm" id="btn-zoom-in">+</button>
-      <button class="ghost sm" id="btn-measure-here">Mõõda siit</button>
+      <button class="ghost sm" id="btn-measure-here">Measure here</button>
     </div>
     <canvas id="wave-a" height="110"></canvas>
     <canvas id="wave-b" height="110"></canvas>
     <canvas id="corr-curve" height="70"></canvas>
     <div class="wave-foot">
       <span id="wave-time">—</span>
-      <span class="tip">Kerimine: rullik · Suum: Ctrl+rullik · Doonorrea lohistamine muudab nihet</span>
+      <span class="tip">Scroll: wheel · Zoom: Ctrl+wheel · Dragging the donor track changes the offset</span>
     </div>
   </div>
 </section>
 
-<!-- ─────────────────────────── 4. eelvaade ───────────────────────── -->
+<!-- ─────────────────────────── 4. preview ────────────────────────── -->
 <section class="card" id="step-preview" hidden>
   <div class="card-head">
     <span class="step">4</span>
-    <h2>Kuula üle</h2>
-    <label class="inline">Algus <input type="text" id="prev-start" value="0:00" class="narrow"></label>
-    <label class="inline">Pikkus <input type="number" id="prev-len" value="12" min="2" max="60" class="narrow"> s</label>
+    <h2>Listen</h2>
+    <label class="inline">Start <input type="text" id="prev-start" value="0:00" class="narrow"></label>
+    <label class="inline">Length <input type="number" id="prev-len" value="12" min="2" max="60" class="narrow"> s</label>
     <select id="prev-mode">
-      <option value="split">Originaal vasakul / uus paremal</option>
-      <option value="donor">Ainult uus heli</option>
+      <option value="split">Original left / new right</option>
+      <option value="donor">New audio only</option>
     </select>
-    <button class="primary" id="btn-preview">Renderda lõik</button>
+    <button class="primary" id="btn-preview">Render excerpt</button>
   </div>
   <div class="progress" id="preview-progress" hidden><div class="bar"><i></i></div><span class="stage"></span></div>
   <div class="player-wrap">
     <video id="player" controls preload="auto"></video>
-    <p class="hint">Split-režiimis kuuled originaali vasakust ja uut heli paremast kõrvaklapist — nii kuuleb nihet kohe.</p>
+    <p class="hint">In split mode you hear the original in the left earphone and the new audio in the right — an offset is immediately audible.</p>
   </div>
 </section>
 
-<!-- ─────────────────────────── 5. eksport ────────────────────────── -->
+<!-- ─────────────────────────── 5. export ─────────────────────────── -->
 <section class="card" id="step-export" hidden>
   <div class="card-head">
     <span class="step">5</span>
-    <h2>Ekspordi</h2>
-    <button class="primary" id="btn-export">Ekspordi fail</button>
+    <h2>Export</h2>
+    <button class="primary" id="btn-export">Export file</button>
   </div>
 
   <div class="export-opts">
-    <label>Failinimi <input type="text" id="out-name" class="wide"></label>
-    <label>Heli kodek
+    <label>File name <input type="text" id="out-name" class="wide"></label>
+    <label>Audio codec
       <select id="out-codec">
         <option value="aac">AAC</option>
         <option value="libopus">Opus</option>
-        <option value="flac">FLAC (kadudeta)</option>
+        <option value="flac">FLAC (lossless)</option>
         <option value="pcm_s16le">PCM 16-bit</option>
       </select>
     </label>
-    <label>Bitikiirus <input type="text" id="out-bitrate" value="256k" class="narrow"></label>
-    <label>Doonori keel <input type="text" id="out-lang" value="est" class="narrow"></label>
-    <label class="check"><input type="checkbox" id="out-keep" checked> Säilita originaalheli teise rajana</label>
+    <label>Bitrate <input type="text" id="out-bitrate" value="256k" class="narrow"></label>
+    <label>Donor language <input type="text" id="out-lang" value="est" class="narrow"></label>
+    <label class="check"><input type="checkbox" id="out-keep" checked> Keep original audio as a second track</label>
   </div>
 
   <div class="progress" id="export-progress" hidden><div class="bar"><i></i></div><span class="stage"></span></div>
   <div id="export-result" hidden></div>
 
   <details class="cmd">
-    <summary>Vastav ffmpeg käsk</summary>
+    <summary>Corresponding ffmpeg command</summary>
     <pre id="cmd-text">—</pre>
-    <button class="ghost sm" id="btn-copy-cmd">Kopeeri</button>
+    <button class="ghost sm" id="btn-copy-cmd">Copy</button>
   </details>
 </section>
 

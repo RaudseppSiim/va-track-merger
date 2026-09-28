@@ -34,7 +34,7 @@ export async function runJob(path, body, onTick) {
     onTick?.(job);
 
     if (job.state === "done") return job.result;
-    if (job.state === "error") throw new Error(job.error || "Töö ebaõnnestus");
-    if (job.state === "cancelled") throw new Error("Katkestatud");
+    if (job.state === "error") throw new Error(job.error || "Job failed");
+    if (job.state === "cancelled") throw new Error("Cancelled");
   }
 }

@@ -46,9 +46,9 @@ def resolve(path: str) -> str:
     for root in ROOTS:
         if real == root or real.startswith(root + os.sep):
             if not os.path.exists(real):
-                raise HTTPException(404, f"Faili ei leitud: {path}")
+                raise HTTPException(404, f"File not found: {path}")
             return real
-    raise HTTPException(403, f"Tee on lubatud kaustadest väljas: {path}")
+    raise HTTPException(403, f"Path is outside the allowed folders: {path}")
 
 
 def rel(path: str) -> str:
@@ -250,15 +250,15 @@ def waveform(
 
 def _measure(req: AnalyseReq, path_a: str, path_b: str, method: str, job: Optional[Job]) -> dict:
     if job:
-        job.stage = f"Signaali lugemine ({method}): A"
+        job.stage = f"Reading signal ({method}): A"
         job.progress = 0.05
     sig_a = _signal(path_a, method, req.streamA)
     if job:
-        job.stage = f"Signaali lugemine ({method}): B"
+        job.stage = f"Reading signal ({method}): B"
         job.progress = 0.45
     sig_b = _signal(path_b, method, req.streamB)
     if job:
-        job.stage = f"Ristkorrelatsioon ({method})"
+        job.stage = f"Cross-correlation ({method})"
         job.progress = 0.8
 
     model, measurements = analysis.analyse_pair(
@@ -349,7 +349,7 @@ def probe_point(req: ProbePointReq) -> dict:
     win = int(req.windowSec * hz)
     lag = int(req.maxShiftSec * hz)
     if sig_a.size < win or sig_b.size < win:
-        raise HTTPException(400, "Signaal on liiga lühike selle akna jaoks.")
+        raise HTTPException(400, "Signal is too short for this window.")
 
     warped = analysis.warp_signal(sig_b, req.alpha, req.beta, sig_a.size)
 
@@ -357,11 +357,11 @@ def probe_point(req: ProbePointReq) -> dict:
     b0 = max(0, i0 - lag)
     b1 = min(warped.size, i0 + win + lag)
     if b1 - b0 < win + 2:
-        raise HTTPException(400, "Otsinguaken jääb faili B piiridest välja.")
+        raise HTTPException(400, "Search window falls outside file B.")
 
     scores = analysis.normalised_xcorr(sig_a[i0:i0 + win], warped[b0:b1])
     if scores.size == 0:
-        raise HTTPException(400, "Korrelatsiooni ei õnnestunud arvutada.")
+        raise HTTPException(400, "Could not compute the correlation.")
 
     k = int(np.argmax(scores))
     guard = max(1, int(0.5 * hz))
@@ -405,7 +405,7 @@ def preview(req: PreviewReq) -> dict:
     out = os.path.join(PREVIEW_DIR, name)
 
     def work(job: Job) -> dict:
-        job.stage = "Eelvaate renderdamine"
+        job.stage = "Rendering preview"
         render.render_preview(
             video_a=path_a, donor_b=path_b, out_path=out,
             start=req.start, length=req.length,
@@ -433,7 +433,7 @@ def export(req: ExportReq) -> dict:
     params = req.sync.to_params()
 
     def work(job: Job) -> dict:
-        job.stage = "Ekspordin (video kopeeritakse, heli kodeeritakse uuesti)"
+        job.stage = "Exporting (video is copied, audio is re-encoded)"
 
         def on_progress(p: float) -> None:
             job.progress = p
@@ -509,7 +509,7 @@ def _prune(directory: str, keep: int) -> None:
 def job_status(job_id: str) -> dict:
     job = registry.get(job_id)
     if not job:
-        raise HTTPException(404, "Tööd ei leitud")
+        raise HTTPException(404, "Job not found")
     return job.to_dict()
 
 
@@ -528,7 +528,7 @@ def preview_file(name: str, request: Request):
     safe = os.path.basename(name)
     path = os.path.join(PREVIEW_DIR, safe)
     if not os.path.exists(path):
-        raise HTTPException(404, "Eelvaadet ei leitud")
+        raise HTTPException(404, "Preview not found")
     return _ranged(path, request, "video/mp4")
 
 

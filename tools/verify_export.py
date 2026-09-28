@@ -21,9 +21,9 @@ from backend.app import analysis, ffmpeg  # noqa: E402
 def main(path: str) -> int:
     info = ffmpeg.probe(path)
     if len(info.audio) < 2:
-        sys.exit("Failis on ainult uks helirada -- ekspordi 'Sailita originaalheli' sisse lulitatuna.")
+        sys.exit("The file has only one audio track -- export with 'Keep original audio' enabled.")
 
-    print(f"{os.path.basename(path)}  {info.duration:.2f}s  {len(info.audio)} helirada")
+    print(f"{os.path.basename(path)}  {info.duration:.2f}s  {len(info.audio)} audio tracks")
     donor = analysis.audio_novelty(path, stream=0)
     original = analysis.audio_novelty(path, stream=1)
 
@@ -33,20 +33,20 @@ def main(path: str) -> int:
     start_ms = model.beta * 1000
     end_ms = ((model.alpha - 1) * info.duration + model.beta) * 1000
 
-    print(f"rada 0 vs rada 1:  alpha={model.alpha:.6f}  beta={model.beta:+.4f}s")
-    print(f"  nihe alguses {start_ms:+7.1f} ms")
-    print(f"  nihe lopus   {end_ms:+7.1f} ms")
-    print(f"  jaak {model.rmsResidualMs:.1f} ms   {model.inliers}/{model.total} punkti   "
-          f"kindlus {model.confidence:.2f}")
+    print(f"track 0 vs track 1:  alpha={model.alpha:.6f}  beta={model.beta:+.4f}s")
+    print(f"  offset at start {start_ms:+7.1f} ms")
+    print(f"  offset at end   {end_ms:+7.1f} ms")
+    print(f"  residual {model.rmsResidualMs:.1f} ms   {model.inliers}/{model.total} points   "
+          f"confidence {model.confidence:.2f}")
 
     worst = max(abs(start_ms), abs(end_ms))
     if model.confidence < 0.2:
-        print("\nEBASELGE: radade vahel ei leidnud usaldusvaarset vastet.")
+        print("\nUNCLEAR: no trustworthy match found between the tracks.")
         return 2
     if worst <= 40:
-        print(f"\nOK  radade vahe jaab {worst:.0f} ms sisse -- sunkroonis.")
+        print(f"\nOK  the tracks stay within {worst:.0f} ms of each other -- in sync.")
         return 0
-    print(f"\nFAIL  rajad lahevad {worst:.0f} ms lahku.")
+    print(f"\nFAIL  the tracks diverge by {worst:.0f} ms.")
     return 1
 
 

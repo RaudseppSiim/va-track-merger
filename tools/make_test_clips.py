@@ -102,10 +102,10 @@ def main(outdir: str) -> None:
 
     os.remove(base)
     print()
-    print(f"Valmis: {a_out}")
+    print(f"Done: {a_out}")
     print(f"        {b_out}")
-    print(f"Oodatav mudel:  alpha = {ALPHA:.6f}   beta = {-TRIM_B:.3f} s")
-    print(f"Fixture'i enda maaramatus: ~{500 / FPS_A:.0f} ms (pool kaadrit A-s)")
+    print(f"Expected model:  alpha = {ALPHA:.6f}   beta = {-TRIM_B:.3f} s")
+    print(f"Fixture's own uncertainty: ~{500 / FPS_A:.0f} ms (half a frame in A)")
 
 
 if __name__ == "__main__":

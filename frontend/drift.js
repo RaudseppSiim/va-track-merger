@@ -1,5 +1,5 @@
 /**
- * The drift chart: the one picture that answers "kas ja kui palju läheb paigast".
+ * The drift chart: the one picture that answers "does it drift, and by how much".
  *
  * mode "residual" — Y is the error that would remain after the current
  *   correction, in ms, with perceptual tolerance bands. Points inside the
@@ -203,7 +203,7 @@ export function drawDrift(canvas, { measurements = [], model, duration, mode = "
   ctx.textAlign = "left";
   ctx.textBaseline = "top";
   ctx.fillText(
-    mode === "raw" ? "toores nihe (heli hilineb ▲ / ennetab ▼)" : "jääkviga peale parandust",
+    mode === "raw" ? "raw offset (audio lags ▲ / leads ▼)" : "residual error after correction",
     PAD.left + 4,
     4
   );

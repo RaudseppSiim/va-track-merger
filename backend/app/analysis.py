@@ -294,7 +294,7 @@ def fit_linear(
     pts = [m for m in measurements if m.score >= min_score]
     if not pts:
         return SyncModel(1.0, 0.0, 0.0, 0.0, 0, len(measurements), 0.0,
-                         "Usaldusväärseid vasteid ei leitud.")
+                         "No trustworthy matches found.")
 
     t = np.array([m.t for m in pts], dtype=np.float64)
     d = np.array([m.offset for m in pts], dtype=np.float64)
@@ -429,7 +429,7 @@ def analyse_pair(
     can use long windows and still resolve tens of milliseconds.
     """
     if sig_a.size == 0 or sig_b.size == 0:
-        return SyncModel(1.0, 0.0, 0.0, 0.0, 0, 0, 0.0, "Signaal on tühi."), []
+        return SyncModel(1.0, 0.0, 0.0, 0.0, 0, 0, 0.0, "Signal is empty."), []
 
     # A probe window of length W sees the two files drift apart by W*(1-alpha)
     # across its own span -- 0.32 s over 8 s at PAL rates. Features narrower
@@ -496,7 +496,7 @@ def analyse_pair(
 # --------------------------------------------------------------------------
 
 KNOWN_RATIOS: list[tuple[str, float]] = [
-    ("1:1 (sama kiirus)", 1.0),
+    ("1:1 (same speed)", 1.0),
     ("PAL speedup: 25 -> 23.976", 23.976 / 25.0),
     ("PAL slowdown: 23.976 -> 25", 25.0 / 23.976),
     ("25 -> 24", 24.0 / 25.0),

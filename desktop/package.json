@@ -2,7 +2,7 @@
   "name": "video-audio-track-merger-desktop",
   "version": "1.0.0",
   "private": true,
-  "description": "Natiivne aken konteineris jooksva helirea ühitaja ümber",
+  "description": "Native window around the audio track merger running in a container",
   "main": "main.js",
   "scripts": {
     "start": "electron ."
