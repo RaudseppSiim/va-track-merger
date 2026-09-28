@@ -1,0 +1,9 @@
+work/
+media/*
+!media/.gitkeep
+__pycache__/
+*.pyc
+desktop/node_modules/
+desktop/dist/
+dist/
+.venv/

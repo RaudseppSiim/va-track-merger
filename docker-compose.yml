@@ -1,0 +1,30 @@
+services:
+  merger:
+    build: .
+    container_name: va-track-merger
+    ports:
+      - "5174:5174"
+    volumes:
+      # Sinu videod. Muuda vasakut poolt kui failid on mujal,
+      # nt:  - "D:/Videod:/media:ro"
+      - ./media:/media:ro
+      # Vaheandmed + eksporditud failid (jaab alles ka peale konteineri sulgemist)
+      - ./work:/work
+    environment:
+      - MEDIA_DIR=/media
+      - WORK_DIR=/work
+    restart: unless-stopped
+
+  # One-shot: builds the native window into dist/ and exits. Needs no Node on
+  # the host. Behind a profile so a plain `docker compose up` ignores it.
+  #   docker compose --profile desktop run --rm desktop-build
+  desktop-build:
+    profiles: ["desktop"]
+    build:
+      context: .
+      dockerfile: desktop/Dockerfile
+      args:
+        # swap for linux-x64 / darwin-arm64 to build the window for another OS
+        ELECTRON_PLATFORM: win32-x64
+    volumes:
+      - ./dist:/out

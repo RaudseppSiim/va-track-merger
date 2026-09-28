@@ -1,0 +1,7 @@
+work/
+media/
+desktop/node_modules/
+__pycache__/
+*.pyc
+.git/
+dist/

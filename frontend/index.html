@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="et">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Helirea ühitaja</title>
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>🎚️</text></svg>">
+</head>
+<body>
+
+<header class="topbar">
+  <h1>Helirea ühitaja</h1>
+  <div class="spacer"></div>
+  <span id="health" class="pill pill-muted">kontrollin…</span>
+</header>
+
+<main>
+
+<!-- ─────────────────────────── 1. failid ─────────────────────────── -->
+<section class="card" id="step-files">
+  <div class="card-head">
+    <span class="step">1</span>
+    <h2>Failid</h2>
+    <button class="ghost" id="btn-reload-files">Värskenda nimekirja</button>
+  </div>
+
+  <div class="two-col">
+    <div class="file-slot" data-slot="a">
+      <label>A — video, mille pilti hoiame</label>
+      <select id="file-a"><option value="">— vali fail —</option></select>
+      <div class="meta" id="meta-a">—</div>
+      <label class="sub">Originaalheli rada (jääb 2. rajaks)</label>
+      <select id="stream-a"></select>
+    </div>
+
+    <div class="file-slot" data-slot="b">
+      <label>B — fail, kust heli võtame</label>
+      <select id="file-b"><option value="">— vali fail —</option></select>
+      <div class="meta" id="meta-b">—</div>
+      <label class="sub">Doonorheli rada</label>
+      <select id="stream-b"></select>
+    </div>
+  </div>
+
+  <p class="hint" id="fps-hint"></p>
+</section>
+
+<!-- ─────────────────────────── 2. analüüs ────────────────────────── -->
+<section class="card" id="step-analyse">
+  <div class="card-head">
+    <span class="step">2</span>
+    <h2>Mõõda nihe</h2>
+    <details class="opts">
+      <summary>Seaded</summary>
+      <div class="opts-body">
+        <label>Meetod
+          <select id="opt-method">
+            <option value="both">Mõlemad (soovitatud)</option>
+            <option value="video">Pilt — keelest sõltumatu</option>
+            <option value="audio">Heli — muusika/efektid</option>
+          </select>
+        </label>
+        <label>Mõõtepunkte <input type="number" id="opt-windows" value="24" min="3" max="120"></label>
+        <label>Akna pikkus (s) <input type="number" id="opt-winsec" value="24" min="2" max="180"></label>
+        <label>Max otsing (s) <input type="number" id="opt-maxshift" value="30" min="1" max="600"></label>
+      </div>
+    </details>
+    <button class="primary" id="btn-analyse" disabled>Analüüsi</button>
+  </div>
+
+  <div class="progress" id="analyse-progress" hidden>
+    <div class="bar"><i></i></div><span class="stage"></span>
+  </div>
+
+  <div id="analyse-empty" class="empty">
+    Vali mõlemad failid ja vajuta <b>Analüüsi</b>. Tööriist loeb mõlemast failist
+    signaali ja mõõdab, kui palju heli pildist eemale triivib.
+  </div>
+
+  <div id="analyse-result" hidden>
+    <div class="verdict" id="verdict"></div>
+
+    <div class="chart-wrap">
+      <canvas id="drift-chart" height="300"></canvas>
+      <div class="chart-legend">
+        <span><i class="sw sw-good"></i>±40 ms — märkamatu</span>
+        <span><i class="sw sw-warn"></i>±100 ms — tajutav</span>
+        <span><i class="sw sw-bad"></i>üle selle — selgelt paigast</span>
+        <span><i class="sw sw-pt"></i>mõõtepunkt</span>
+        <span><i class="sw sw-out"></i>kõrvale jäetud</span>
+      </div>
+    </div>
+
+    <div class="readout" id="readout"></div>
+  </div>
+</section>
+
+<!-- ─────────────────────────── 3. parandus ───────────────────────── -->
+<section class="card" id="step-fix" hidden>
+  <div class="card-head">
+    <span class="step">3</span>
+    <h2>Parandus</h2>
+    <button class="ghost" id="btn-reset-model">Taasta mõõdetud väärtused</button>
+  </div>
+
+  <div class="controls">
+    <div class="ctl">
+      <label for="in-beta">Nihe algusest <span class="unit">ms</span></label>
+      <input type="number" id="in-beta" step="1" value="0">
+      <input type="range" id="rng-beta" min="-5000" max="5000" step="1" value="0">
+      <small>Positiivne = doonorheli algab hiljem ja seda lõigatakse eest ära.</small>
+    </div>
+
+    <div class="ctl">
+      <label for="in-alpha">Tempo <span class="unit">×</span></label>
+      <input type="number" id="in-alpha" step="0.000001" value="1">
+      <input type="range" id="rng-alpha" min="0.9" max="1.1" step="0.000001" value="1">
+      <small id="alpha-note">1.000000 = muutmata. Triiv <b id="ppm">0</b> ppm ≈ <b id="perhour">0 s/h</b>.</small>
+    </div>
+
+    <div class="ctl">
+      <label>Tuntud suhted</label>
+      <select id="ratio-presets"><option value="">— vali —</option></select>
+      <label class="check"><input type="checkbox" id="lock-alpha"> Lukusta tempo ja sobita ainult nihe</label>
+    </div>
+
+    <div class="ctl">
+      <label>Kõrgus / helitugevus</label>
+      <select id="in-pitch">
+        <option value="preserve">Säilita helikõrgus (atempo)</option>
+        <option value="tape">Muuda ka kõrgust (asetrate) — PAL-paranduseks õigem</option>
+      </select>
+      <label class="inline">Gain <span class="unit">dB</span>
+        <input type="number" id="in-gain" step="0.5" value="0" class="narrow">
+      </label>
+    </div>
+  </div>
+
+  <div class="wave-panel">
+    <div class="wave-head">
+      <span>Lainekujud — ülemine on A originaalheli, alumine doonorheli <b>peale parandust</b></span>
+      <div class="spacer"></div>
+      <span class="zoom-label" id="zoom-label"></span>
+      <button class="ghost sm" data-jump="0">Algus</button>
+      <button class="ghost sm" data-jump="0.5">Keskel</button>
+      <button class="ghost sm" data-jump="0.98">Lõpp</button>
+      <button class="ghost sm" id="btn-zoom-out">−</button>
+      <button class="ghost sm" id="btn-zoom-in">+</button>
+      <button class="ghost sm" id="btn-measure-here">Mõõda siit</button>
+    </div>
+    <canvas id="wave-a" height="110"></canvas>
+    <canvas id="wave-b" height="110"></canvas>
+    <canvas id="corr-curve" height="70"></canvas>
+    <div class="wave-foot">
+      <span id="wave-time">—</span>
+      <span class="tip">Kerimine: rullik · Suum: Ctrl+rullik · Doonorrea lohistamine muudab nihet</span>
+    </div>
+  </div>
+</section>
+
+<!-- ─────────────────────────── 4. eelvaade ───────────────────────── -->
+<section class="card" id="step-preview" hidden>
+  <div class="card-head">
+    <span class="step">4</span>
+    <h2>Kuula üle</h2>
+    <label class="inline">Algus <input type="text" id="prev-start" value="0:00" class="narrow"></label>
+    <label class="inline">Pikkus <input type="number" id="prev-len" value="12" min="2" max="60" class="narrow"> s</label>
+    <select id="prev-mode">
+      <option value="split">Originaal vasakul / uus paremal</option>
+      <option value="donor">Ainult uus heli</option>
+    </select>
+    <button class="primary" id="btn-preview">Renderda lõik</button>
+  </div>
+  <div class="progress" id="preview-progress" hidden><div class="bar"><i></i></div><span class="stage"></span></div>
+  <div class="player-wrap">
+    <video id="player" controls preload="auto"></video>
+    <p class="hint">Split-režiimis kuuled originaali vasakust ja uut heli paremast kõrvaklapist — nii kuuleb nihet kohe.</p>
+  </div>
+</section>
+
+<!-- ─────────────────────────── 5. eksport ────────────────────────── -->
+<section class="card" id="step-export" hidden>
+  <div class="card-head">
+    <span class="step">5</span>
+    <h2>Ekspordi</h2>
+    <button class="primary" id="btn-export">Ekspordi fail</button>
+  </div>
+
+  <div class="export-opts">
+    <label>Failinimi <input type="text" id="out-name" class="wide"></label>
+    <label>Heli kodek
+      <select id="out-codec">
+        <option value="aac">AAC</option>
+        <option value="libopus">Opus</option>
+        <option value="flac">FLAC (kadudeta)</option>
+        <option value="pcm_s16le">PCM 16-bit</option>
+      </select>
+    </label>
+    <label>Bitikiirus <input type="text" id="out-bitrate" value="256k" class="narrow"></label>
+    <label>Doonori keel <input type="text" id="out-lang" value="est" class="narrow"></label>
+    <label class="check"><input type="checkbox" id="out-keep" checked> Säilita originaalheli teise rajana</label>
+  </div>
+
+  <div class="progress" id="export-progress" hidden><div class="bar"><i></i></div><span class="stage"></span></div>
+  <div id="export-result" hidden></div>
+
+  <details class="cmd">
+    <summary>Vastav ffmpeg käsk</summary>
+    <pre id="cmd-text">—</pre>
+    <button class="ghost sm" id="btn-copy-cmd">Kopeeri</button>
+  </details>
+</section>
+
+</main>
+
+<div id="toast" class="toast" hidden></div>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
